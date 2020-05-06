@@ -60,16 +60,30 @@ class ReactImageLightbox extends Component {
   }
 
   // Request to transition to the previous image
-  static getTransform({ x = 0, y = 0, zoom = 1, width, targetWidth }) {
+  static getTransform({
+    x = 0,
+    y = 0,
+    zoom = 1,
+    width,
+    height,
+    targetWidth,
+    rotate,
+  }) {
     let nextX = x;
     const windowWidth = getWindowWidth();
-    if (width > windowWidth) {
-      nextX += (windowWidth - width) / 2;
+    if (Math.abs(rotate) === 90 || Math.abs(rotate) === 270) {
+      if (height > windowWidth) {
+        nextX += (windowWidth - height) / 2;
+      }
+    } else {
+      if (width > windowWidth) {
+        nextX += (windowWidth - width) / 2;
+      }
     }
     const scaleFactor = zoom * (targetWidth / width);
 
     return {
-      transform: `translate3d(${nextX}px,${y}px,0) scale3d(${scaleFactor},${scaleFactor},1)`,
+      transform: `translate3d(${nextX}px,${y}px,0) scale3d(${scaleFactor},${scaleFactor},1) rotate(${rotate}deg)`,
     };
   }
 
@@ -105,13 +119,16 @@ class ReactImageLightbox extends Component {
 
       // image load error for srcType
       loadErrorStatus: {},
+
+      // Angle applied to rotate the main image
+      rotate: 0,
     };
 
     // Refs
-    this.outerEl = React.createRef();
-    this.zoomInBtn = React.createRef();
-    this.zoomOutBtn = React.createRef();
-    this.caption = React.createRef();
+    // this.outerEl = React.createRef();
+    // this.zoomInBtn = React.createRef();
+    // this.zoomOutBtn = React.createRef();
+    // this.caption = React.createRef();
 
     this.closeIfClickInner = this.closeIfClickInner.bind(this);
     this.handleImageDoubleClick = this.handleImageDoubleClick.bind(this);
@@ -129,13 +146,14 @@ class ReactImageLightbox extends Component {
     this.handleWindowResize = this.handleWindowResize.bind(this);
     this.handleZoomInButtonClick = this.handleZoomInButtonClick.bind(this);
     this.handleZoomOutButtonClick = this.handleZoomOutButtonClick.bind(this);
+    this.handleRotateButtonClick = this.handleRotateButtonClick.bind(this);
     this.requestClose = this.requestClose.bind(this);
     this.requestMoveNext = this.requestMoveNext.bind(this);
     this.requestMovePrev = this.requestMovePrev.bind(this);
   }
 
   // eslint-disable-next-line camelcase
-  UNSAFE_componentWillMount() {
+  componentWillMount() {
     // Timeouts - always clear it before umount
     this.timeouts = [];
 
@@ -220,7 +238,7 @@ class ReactImageLightbox extends Component {
   }
 
   // eslint-disable-next-line camelcase
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps) {
     // Iterate through the source types for prevProps and nextProps to
     //  determine if any of the sources changed
     let sourcesChanged = false;
@@ -417,8 +435,8 @@ class ReactImageLightbox extends Component {
    * Get the size of the lightbox in pixels
    */
   getLightboxRect() {
-    if (this.outerEl.current) {
-      return this.outerEl.current.getBoundingClientRect();
+    if (this.outerEl) {
+      return this.outerEl.getBoundingClientRect();
     }
 
     return {
@@ -1072,7 +1090,7 @@ class ReactImageLightbox extends Component {
     const nextZoomLevel = this.state.zoomLevel + ZOOM_BUTTON_INCREMENT_SIZE;
     this.changeZoom(nextZoomLevel);
     if (nextZoomLevel === MAX_ZOOM_LEVEL) {
-      this.zoomOutBtn.current.focus();
+      this.zoomOutBtn.focus();
     }
   }
 
@@ -1080,19 +1098,35 @@ class ReactImageLightbox extends Component {
     const nextZoomLevel = this.state.zoomLevel - ZOOM_BUTTON_INCREMENT_SIZE;
     this.changeZoom(nextZoomLevel);
     if (nextZoomLevel === MIN_ZOOM_LEVEL) {
-      this.zoomInBtn.current.focus();
+      this.zoomInBtn.focus();
     }
+  }
+
+  handleRotateButtonClick(angle) {
+    const nextAngle = (this.state.rotate + angle) % 360;
+    // invert width with height for main source image
+    let imageSrc = this.props['mainSrc'];
+    const currentWidth = this.imageCache[imageSrc].width;
+    const currentHeight = this.imageCache[imageSrc].height;
+    this.imageCache[imageSrc].width = currentHeight;
+    this.imageCache[imageSrc].height = currentWidth;
+    this.setState({
+      zoomLevel: MIN_ZOOM_LEVEL,
+      offsetX: 0,
+      offsetY: 0,
+      rotate: nextAngle,
+    });
   }
 
   handleCaptionMousewheel(event) {
     event.stopPropagation();
 
-    if (!this.caption.current) {
+    if (!this.caption) {
       return;
     }
 
-    const { height } = this.caption.current.getBoundingClientRect();
-    const { scrollHeight, scrollTop } = this.caption.current;
+    const { height } = this.caption.getBoundingClientRect();
+    const { scrollHeight, scrollTop } = this.caption;
     if (
       (event.deltaY > 0 && height + scrollTop >= scrollHeight) ||
       (event.deltaY < 0 && scrollTop <= 0)
@@ -1270,6 +1304,7 @@ class ReactImageLightbox extends Component {
       clickOutsideToClose,
       discourageDownloads,
       enableZoom,
+      enableRotate,
       imageTitle,
       nextSrc,
       prevSrc,
@@ -1285,6 +1320,7 @@ class ReactImageLightbox extends Component {
       offsetY,
       isClosing,
       loadErrorStatus,
+      rotate = 0,
     } = this.state;
 
     const boxSize = this.getLightboxRect();
@@ -1416,6 +1452,7 @@ class ReactImageLightbox extends Component {
       x: -1 * offsetX,
       y: -1 * offsetY,
       zoom: zoomMultiplier,
+      rotate,
     });
     // Previous Image (displayed on the left)
     addImage('prevSrc', 'ril-image-prev ril__imagePrev', {
@@ -1448,8 +1485,8 @@ class ReactImageLightbox extends Component {
         onRequestClose={clickOutsideToClose ? this.requestClose : undefined}
         onAfterOpen={() => {
           // Focus on the div with key handlers
-          if (this.outerEl.current) {
-            this.outerEl.current.focus();
+          if (this.outerEl) {
+            this.outerEl.focus();
           }
 
           onAfterOpen();
@@ -1473,7 +1510,9 @@ class ReactImageLightbox extends Component {
             animationDuration: `${animationDuration}ms`,
             animationDirection: isClosing ? 'normal' : 'reverse',
           }}
-          ref={this.outerEl}
+          ref={el => {
+            this.outerEl = el;
+          }}
           onWheel={this.handleOuterMousewheel}
           onMouseMove={this.handleMouseMove}
           onMouseDown={this.handleMouseDown}
@@ -1533,6 +1572,36 @@ class ReactImageLightbox extends Component {
                   </li>
                 ))}
 
+              {enableRotate && (
+                <li className="ril-toolbar__item ril__toolbarItem">
+                  <button // Lightbox rotate left button
+                    type="button"
+                    key="rotate-left"
+                    className={[
+                      'ril__toolbarItemChild',
+                      'ril__builtinButton',
+                      'ril__rotateLeftButton',
+                    ].join(' ')}
+                    onClick={() => this.handleRotateButtonClick(-90)}
+                  />
+                </li>
+              )}
+
+              {enableRotate && (
+                <li className="ril-toolbar__item ril__toolbarItem">
+                  <button // Lightbox rotate right button
+                    type="button"
+                    key="rotate-right"
+                    className={[
+                      'ril__toolbarItemChild',
+                      'ril__builtinButton',
+                      'ril__rotateRightButton',
+                    ].join(' ')}
+                    onClick={() => this.handleRotateButtonClick(90)}
+                  />
+                </li>
+              )}
+
               {enableZoom && (
                 <li className="ril-toolbar__item ril__toolbarItem">
                   <button // Lightbox zoom in button
@@ -1548,7 +1617,9 @@ class ReactImageLightbox extends Component {
                         ? ['ril__builtinButtonDisabled']
                         : []),
                     ].join(' ')}
-                    ref={this.zoomInBtn}
+                    ref={el => {
+                      this.zoomInBtn = el;
+                    }}
                     disabled={
                       this.isAnimating() || zoomLevel === MAX_ZOOM_LEVEL
                     }
@@ -1576,7 +1647,9 @@ class ReactImageLightbox extends Component {
                         ? ['ril__builtinButtonDisabled']
                         : []),
                     ].join(' ')}
-                    ref={this.zoomOutBtn}
+                    ref={el => {
+                      this.zoomOutBtn = el;
+                    }}
                     disabled={
                       this.isAnimating() || zoomLevel === MIN_ZOOM_LEVEL
                     }
@@ -1607,7 +1680,9 @@ class ReactImageLightbox extends Component {
               onWheel={this.handleCaptionMousewheel}
               onMouseDown={event => event.stopPropagation()}
               className="ril-caption ril__caption"
-              ref={this.caption}
+              ref={el => {
+                this.caption = el;
+              }}
             >
               <div className="ril-caption-content ril__captionContent">
                 {this.props.imageCaption}
@@ -1747,6 +1822,9 @@ ReactImageLightbox.propTypes = {
   // Set to false to disable zoom functionality and hide zoom buttons
   enableZoom: PropTypes.bool,
 
+  // Set to true to activate rotation functionality and display rotate buttons
+  enableRotate: PropTypes.bool,
+
   // Override props set on react-modal (https://github.com/reactjs/react-modal)
   reactModalProps: PropTypes.shape({}),
 
@@ -1772,6 +1850,7 @@ ReactImageLightbox.defaultProps = {
   closeLabel: 'Close lightbox',
   discourageDownloads: false,
   enableZoom: true,
+  enableRotate: false,
   imagePadding: 10,
   imageCrossOrigin: null,
   keyRepeatKeyupBonus: 40,
