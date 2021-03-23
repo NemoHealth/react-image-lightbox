@@ -1306,8 +1306,8 @@ class ReactImageLightbox extends Component {
       enableZoom,
       enableRotate,
       imageTitle,
-      nextSrc,
-      prevSrc,
+      onMovePrevRequest,
+      onMoveNextRequest,
       toolbarButtons,
       reactModalStyle,
       onAfterOpen,
@@ -1381,32 +1381,7 @@ class ReactImageLightbox extends Component {
 
         return;
       }
-      if (bestImageInfo === null) {
-        const loadingIcon = (
-          <div className="ril-loading-circle ril__loadingCircle ril__loadingContainer__icon">
-            {[...new Array(12)].map((_, index) => (
-              <div
-                // eslint-disable-next-line react/no-array-index-key
-                key={index}
-                className="ril-loading-circle-point ril__loadingCirclePoint"
-              />
-            ))}
-          </div>
-        );
-
-        // Fall back to loading icon if the thumbnail has not been loaded
-        images.push(
-          <div
-            className={`${imageClass} ril__image ril-not-loaded`}
-            style={imageStyle}
-            key={this.props[srcType] + keyEndings[srcType]}
-          >
-            <div className="ril__loadingContainer">{loadingIcon}</div>
-          </div>
-        );
-
-        return;
-      }
+      if (bestImageInfo === null) return;
 
       const imageSrc = bestImageInfo.src;
       if (discourageDownloads) {
@@ -1530,7 +1505,7 @@ class ReactImageLightbox extends Component {
             {images}
           </div>
 
-          {prevSrc && (
+          {onMovePrevRequest && (
             <button // Move to previous image button
               type="button"
               className="ril-prev-button ril__navButtons ril__navButtonPrev"
@@ -1540,7 +1515,7 @@ class ReactImageLightbox extends Component {
             />
           )}
 
-          {nextSrc && (
+          {onMoveNextRequest && (
             <button // Move to next image button
               type="button"
               className="ril-next-button ril__navButtons ril__navButtonNext"

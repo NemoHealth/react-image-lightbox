@@ -1927,8 +1927,8 @@ var ReactImageLightbox = /*#__PURE__*/ (function(_Component) {
           enableZoom = _this$props.enableZoom,
           enableRotate = _this$props.enableRotate,
           imageTitle = _this$props.imageTitle,
-          nextSrc = _this$props.nextSrc,
-          prevSrc = _this$props.prevSrc,
+          onMovePrevRequest = _this$props.onMovePrevRequest,
+          onMoveNextRequest = _this$props.onMoveNextRequest,
           toolbarButtons = _this$props.toolbarButtons,
           reactModalStyle = _this$props.reactModalStyle,
           _onAfterOpen = _this$props.onAfterOpen,
@@ -2008,45 +2008,7 @@ var ReactImageLightbox = /*#__PURE__*/ (function(_Component) {
             return;
           }
 
-          if (bestImageInfo === null) {
-            var loadingIcon = /*#__PURE__*/ React.createElement(
-              'div',
-              {
-                className:
-                  'ril-loading-circle ril__loadingCircle ril__loadingContainer__icon',
-              },
-              _toConsumableArray(new Array(12)).map(function(_, index) {
-                return /*#__PURE__*/ React.createElement('div', {
-                  // eslint-disable-next-line react/no-array-index-key
-                  key: index,
-                  className: 'ril-loading-circle-point ril__loadingCirclePoint',
-                });
-              })
-            ); // Fall back to loading icon if the thumbnail has not been loaded
-
-            images.push(
-              /*#__PURE__*/ React.createElement(
-                'div',
-                {
-                  className: ''.concat(
-                    imageClass,
-                    ' ril__image ril-not-loaded'
-                  ),
-                  style: imageStyle,
-                  key: _this16.props[srcType] + keyEndings[srcType],
-                },
-                /*#__PURE__*/ React.createElement(
-                  'div',
-                  {
-                    className: 'ril__loadingContainer',
-                  },
-                  loadingIcon
-                )
-              )
-            );
-            return;
-          }
-
+          if (bestImageInfo === null) return;
           var imageSrc = bestImageInfo.src;
 
           if (discourageDownloads) {
@@ -2204,7 +2166,7 @@ var ReactImageLightbox = /*#__PURE__*/ (function(_Component) {
               },
               images
             ),
-            prevSrc &&
+            onMovePrevRequest &&
               /*#__PURE__*/ React.createElement('button', {
                 // Move to previous image button
                 type: 'button',
@@ -2213,7 +2175,7 @@ var ReactImageLightbox = /*#__PURE__*/ (function(_Component) {
                 'aria-label': this.props.prevLabel,
                 onClick: !this.isAnimating() ? this.requestMovePrev : undefined, // Ignore clicks during animation
               }),
-            nextSrc &&
+            onMoveNextRequest &&
               /*#__PURE__*/ React.createElement('button', {
                 // Move to next image button
                 type: 'button',
